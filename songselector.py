@@ -6,6 +6,7 @@ from typing import Any
 from io import BytesIO
 from json import loads
 import pygame
+import pygame_gui as pgui
 
 
 class Song:
@@ -132,20 +133,36 @@ class SongSelector:
         self.active = False
         self.selected_index = -1
         self.anim = 0
+
+        self.ui_manager = pgui.UIManager((Config.SCREEN_WIDTH, Config.SCREEN_HEIGHT))
+        self.search_box = pgui.elements.UITextEntryLine(
+            relative_rect=pygame.Rect((10, 10, min(Config.SCREEN_WIDTH * 0.6, 600), 60)),
+            placeholder_text='',
+            manager=self.ui_manager
+        )
+        self.search_box.set_text('')
+
         self.play_button_rect = pygame.Rect(Config.SCREEN_WIDTH - 300, 150, 250, 100)
         self.play_button_text = get_font(48).render(lang_key("play"), True, (0, 0, 0))
         self.back_button_rect = pygame.Rect(Config.SCREEN_WIDTH - 300, 20, 250, 150 - 40)
         self.back_button_text = get_font(48).render(lang_key("back"), True, (0, 0, 0))
 
-    def reload_songs(self):
+    def reload_songs(self, pt=''):
         self.songs = []
         for song_name in reversed(listdir("songs")):
             path = join("songs", song_name)
             if isfile(path):
+                songs: list[Song] = None
                 if path.lower().endswith(".zip") or path.lower().endswith(".midiplayground"):
-                    self.songs.append(make_song_from_zip(path))
-                if path.lower().endswith(".osz"):
-                    self.songs.extend(make_songs_from_osz(path))
+                    songs = [make_song_from_zip(path)]
+                elif path.lower().endswith(".osz"):
+                    songs = make_songs_from_osz(path)
+
+                if songs:
+                    if pt:
+                        self.songs.extend([song for song in songs if pt.lower() in song.name.lower()])
+                    else:
+                        self.songs.extend(songs)
 
     def get_song_rect(self, index: int):
         rect = pygame.Rect(
@@ -163,6 +180,14 @@ class SongSelector:
             return
         if event.type == pygame.MOUSEWHEEL:
             self.scroll_velocity += event.y / 2
+
+        if event.type == pgui.UI_TEXT_ENTRY_CHANGED:
+            if event.ui_element == self.search_box:
+                text = self.search_box.text
+                self.reload_songs(text)
+
+        self.ui_manager.process_events(event)
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 for index, song in enumerate(self.songs):
@@ -201,6 +226,9 @@ class SongSelector:
         self.anim = max(min(self.anim, 1), 0)
         if self.anim == 0:
             return
+        
+        self.ui_manager.update(1 / FRAMERATE)
+        self.ui_manager.draw_ui(screen)
 
         self.scroll_velocity = min(max(self.scroll_velocity, -1), 1) * (1 - 8 / FRAMERATE)
         keys = pygame.key.get_pressed()

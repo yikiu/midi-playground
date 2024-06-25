@@ -226,7 +226,7 @@ class SongSelector:
         self.anim = max(min(self.anim, 1), 0)
         if self.anim == 0:
             return
-        
+
         self.ui_manager.update(1 / FRAMERATE)
         self.ui_manager.draw_ui(screen)
 

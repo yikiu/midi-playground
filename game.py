@@ -6,6 +6,7 @@ from camera import Camera
 from keystrokes import Keystrokes
 from particle import Particle
 from zipfile import ZipFile
+import math
 
 
 class Game:
@@ -81,7 +82,7 @@ class Game:
         self.world.square.pos = self.world.future_bounces[0].square_pos
 
     def draw(self, screen: pygame.Surface, n_frames: int):
-
+        colors = list(Config.color_themes.values())
         if not self.active:
             return
 
@@ -145,6 +146,7 @@ class Game:
                     pygame.draw.rect(screen, get_colors()["background"], offsetted)
 
         # particles
+        # 这些是方框周围的点
         for particle in self.world.particles:
             pygame.draw.rect(screen, particle.color, self.camera.offset(particle.rect))
         for remove_particle in [particle for particle in self.world.particles if particle.age()]:
@@ -155,7 +157,10 @@ class Game:
             # every 2 frames add a particle
             if not self.world.square.died:
                 if n_frames % 2 == 0:
-                    new = Particle(self.world.square.pos, [0, 0], True)
+                    square_center=self.world.square.pos
+                    direction = [0, 0]
+                    color=random.choice(colors)
+                    new = Particle(square_center,direction, color=color,invert_color=True)
                     new.delta = [random.randint(-10, 10)/20, random.randint(-10, 10)/20]
                     self.world.particles.append(new)
                 

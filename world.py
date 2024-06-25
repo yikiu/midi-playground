@@ -1,3 +1,5 @@
+import math
+
 from utils import *
 from bounce import Bounce
 from particle import Particle
@@ -32,9 +34,18 @@ class World:
         self.past_bounces.append(self.future_bounces.pop(0))
         return self.past_bounces[-1]
 
-    def add_bounce_particles(self, sp: list[float], sd: list[float]):
+    def add_bounce_particles(self, square_center: list[float], square_size:float, sd: list[float]):
+        colors = list(Config.color_themes.values())
+
         for _ in range(Config.particle_amount):
-            new = Particle([sp[0]+random.randint(-10, 10), sp[1]+random.randint(-10, 10)], sd)
+            angle = random.uniform(0, 2 * math.pi)
+            radius = random.uniform(square_size / 2, square_size * 2)
+            x = square_center[0] + radius * math.cos(angle)
+            y = square_center[1] + radius * math.sin(angle)
+            direction = [random.choice([-1, 1]), random.choice([-1, 1])]
+            color = random.choice(colors)
+
+            new = Particle([x, y], direction, color)
             self.particles.append(new)
 
     def handle_bouncing(self, square: Square):
@@ -50,7 +61,9 @@ class World:
                     else:
                         changed[_] = -changed[_]
                 if Config.do_particles_on_bounce:
-                    self.add_bounce_particles(square.pos, changed)
+                    center = square.rect.center
+                    square_size=square.rect.width
+                    self.add_bounce_particles(center, square_size,changed)
 
                 # stop square at end
                 if len(self.future_bounces) == 0:
